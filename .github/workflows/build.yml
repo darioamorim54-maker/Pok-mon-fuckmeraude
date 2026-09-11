@@ -36,7 +36,7 @@ jobs:
         run: |
           PROJECT=$(dirname "$(find project -name Makefile -type f | head -n 1)")
           cd "$PROJECT"
-          make modern -j2
+          make -j2
 
       - name: Vérifier la ROM
         run: |

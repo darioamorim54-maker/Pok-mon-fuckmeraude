@@ -1,0 +1,49 @@
+name: Build Pokémon Abdel Edition
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Installer les outils
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y unzip gcc-arm-none-eabi binutils-arm-none-eabi
+
+      - name: Décompresser le projet
+        run: |
+          mkdir project
+          unzip -q Pokemon_Emeraude_Abdel_Edition_GITHUB_READY.zip -d project
+
+      - name: Trouver le projet
+        run: |
+          find project -name Makefile -print
+
+      - name: Installer agbcc
+        run: |
+          git clone --depth 1 https://github.com/pret/agbcc.git
+          cd agbcc
+          ./build.sh
+          ./install.sh ../project
+
+      - name: Compiler le jeu
+        run: |
+          PROJECT=$(dirname "$(find project -name Makefile -type f | head -n 1)")
+          cd "$PROJECT"
+          make modern -j2
+
+      - name: Vérifier la ROM
+        run: |
+          find . -type f -name "*.gba" -print
+
+      - name: Récupérer la ROM
+        uses: actions/upload-artifact@v4
+        with:
+          name: Pokemon-Emeraude-Abdel-Edition
+          path: "**/*.gba"

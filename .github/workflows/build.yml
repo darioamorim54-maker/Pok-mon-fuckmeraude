@@ -30,7 +30,7 @@ jobs:
           git clone --depth 1 https://github.com/pret/agbcc.git
           cd agbcc
           ./build.sh
-          ./install.sh ../project
+          ./install.sh ../project/pokeemerald-fr-master
 
       - name: Compiler le jeu
         run: |

@@ -33,17 +33,27 @@ jobs:
           ./install.sh ../project/pokeemerald-fr-master
 
       - name: Compiler le jeu
+        working-directory: project/pokeemerald-fr-master
         run: |
-          PROJECT=$(dirname "$(find project -name Makefile -type f | head -n 1)")
-          cd "$PROJECT"
-          make -j2
+          pwd
+          echo "=== CONTENU DU PROJET ==="
+          ls -la
+          echo "=== COMPILATION ==="
+          make -j2 all
 
       - name: Vérifier la ROM
+        working-directory: project/pokeemerald-fr-master
         run: |
-          find . -type f -name "*.gba" -print
-      
+          echo "=== ROMS TROUVEES ==="
+          ls -lh *.gba
+          test -s pokeemerald.gba
+          echo "=== SHA1 ==="
+          sha1sum pokeemerald.gba
+
       - name: Récupérer la ROM
         uses: actions/upload-artifact@v4
         with:
           name: Pokemon-Emeraude-Abdel-Edition
-          path: "project/**/*.gba"
+          path: project/pokeemerald-fr-master/pokeemerald.gba
+          if-no-files-found: error
+          retention-days: 7

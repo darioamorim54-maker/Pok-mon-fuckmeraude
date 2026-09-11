@@ -41,9 +41,9 @@ jobs:
       - name: Vérifier la ROM
         run: |
           find . -type f -name "*.gba" -print
-
+      
       - name: Récupérer la ROM
         uses: actions/upload-artifact@v4
         with:
           name: Pokemon-Emeraude-Abdel-Edition
-          path: "**/*.gba"
+          path: "project/**/*.gba"

@@ -13,9 +13,7 @@ jobs:
 
       - name: Installer les outils
         run: |
-          sudo apt-get update
-          sudo apt-get install -y unzip gcc-arm-none-eabi binutils-arm-none-eabi
-
+          sudo apt-get install -y unzip gcc-arm-none-eabi binutils-arm-none-eabi build-essential libpng-dev
       - name: Décompresser le projet
         run: |
           mkdir project
@@ -36,7 +34,10 @@ jobs:
         run: |
           chmod +x tools/gbafix/gbafix
           chmod +x tools/gbagfx/gbagfx
-          
+      - name: Compiler scaninc
+      - working-directory: project/pokeemerald-fr-master
+        run: |
+          make -C tools/scaninc 
       - name: Compiler le jeu
         working-directory: project/pokeemerald-fr-master
         run: |
@@ -44,7 +45,7 @@ jobs:
           echo "=== CONTENU DU PROJET ==="
           ls -la
           echo "=== COMPILATION ==="
-          make -j1 NODEP=1 all
+          make -j1 all
 
       - name: Vérifier la ROM
         working-directory: project/pokeemerald-fr-master

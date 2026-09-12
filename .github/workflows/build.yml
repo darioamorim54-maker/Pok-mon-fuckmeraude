@@ -1,4 +1,4 @@
-name: Build Pokémon Abdel Edition FR
+name: Build Pokémon Emeraude - Abdel Edition MAX
 
 on:
   workflow_dispatch:
@@ -16,80 +16,79 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            gcc-arm-none-eabi \
-            binutils-arm-none-eabi \
-            libnewlib-arm-none-eabi \
-            build-essential \
-            git \
-            libpng-dev
+            unzip gcc-arm-none-eabi binutils-arm-none-eabi \
+            libnewlib-arm-none-eabi build-essential git libpng-dev
 
-      - name: Récupérer la base française
+      - name: Trouver la base MAX
+        shell: bash
         run: |
           set -e
+          rm -rf project
+          mkdir -p project
 
-          git clone --depth 1 --branch french \
-            https://github.com/simsor/pokeemerald-fr.git \
-            pokeemerald-fr
+          ZIP=""
+          while IFS= read -r -d '' f; do
+            if unzip -l "$f" | grep -qE 'abdel_max_source/Makefile$'; then
+              ZIP="$f"
+              break
+            fi
+          done < <(find . -maxdepth 2 -type f -name '*.zip' -print0)
 
-          test -f pokeemerald-fr/Makefile
+          if [ -z "$ZIP" ]; then
+            echo "ERREUR: Pokemon_Emeraude_Abdel_Edition_MAX_SOURCE.zip introuvable."
+            find . -maxdepth 2 -type f -name '*.zip' -print
+            exit 1
+          fi
 
-          echo "=== BASE FRANÇAISE ==="
-          pwd
-          ls -lh pokeemerald-fr/Makefile
-
-      - name: Modifier le vélo en GT86
-        working-directory: pokeemerald-fr
-        run: |
-          set -e
-
-          python3 - <<'PY'
-          from pathlib import Path
-
-          files = [
-              Path("src/data/items.h"),
-              Path("src/data/text/item_descriptions.h"),
-          ]
-
-          for path in files:
-              text = path.read_text(encoding="utf-8")
-
-              text = text.replace("VELO COURSE", "GT86")
-              text = text.replace("VELO CROSS", "GT86 RALLY")
-              text = text.replace("VÉLO COURSE", "GT86")
-              text = text.replace("VÉLO CROSS", "GT86 RALLY")
-
-              path.write_text(text, encoding="utf-8")
-
-          print("GT86 appliquée.")
-          PY
+          echo "Archive: $ZIP"
+          unzip -q "$ZIP" -d project
+          mv project/abdel_max_source project/pokeemerald-fr-master
+          test -f project/pokeemerald-fr-master/Makefile
 
       - name: Installer agbcc
+        shell: bash
         run: |
           set -e
-
-          git clone --depth 1 \
-            https://github.com/pret/agbcc.git \
-            agbcc
-
+          rm -rf agbcc
+          git clone --depth 1 https://github.com/pret/agbcc.git agbcc
           cd agbcc
           ./build.sh
-          ./install.sh ../pokeemerald-fr
+          ./install.sh ../project/pokeemerald-fr-master
+          test -x ../project/pokeemerald-fr-master/tools/agbcc/bin/agbcc
 
-          test -x ../pokeemerald-fr/tools/agbcc/bin/agbcc
-
-      - name: Compiler
-        working-directory: pokeemerald-fr
+      - name: Compiler la ROM
+        working-directory: project/pokeemerald-fr-master
+        shell: bash
         run: |
           set -e
+          make -j2 all
+          test -s pokeemerald.gba
+          ls -lh pokeemerald.gba
+          sha256sum pokeemerald.gba
 
-          echo "=== COMPILATION ==="
-          make -j2
-
-      - name: Vérifier la ROM
-        working-directory: pokeemerald-fr
+      - name: Vérification finale
+        working-directory: project/pokeemerald-fr-master
+        shell: bash
         run: |
           set -e
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('pokeemerald.gba')
+          b = p.read_bytes()
+          print('Taille:', len(b))
+          print('Titre:', b[0xA0:0xAC].rstrip(b'\0').decode('ascii', 'replace'))
+          print('Code:', b[0xAC:0xB0].decode('ascii', 'replace'))
+          assert len(b) == 16 * 1024 * 1024
+          assert b[0xAC:0xB0] == b'BPEF'
+          PY
 
+      - name: Publier la ROM finale
+        uses: actions/upload-artifact@v4
+        with:
+          name: Pokemon-Emeraude-Abdel-Edition-MAX
+          path: project/pokeemerald-fr-master/pokeemerald.gba
+          if-no-files-found: error
+          retention-days: 7
           test -s pokeemerald.gba
 
           echo "=== ROM PRODUITE ==="

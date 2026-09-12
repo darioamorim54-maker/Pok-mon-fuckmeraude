@@ -16,17 +16,24 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            unzip gcc-arm-none-eabi binutils-arm-none-eabi \
-            libnewlib-arm-none-eabi build-essential git libpng-dev
+            unzip \
+            gcc-arm-none-eabi \
+            binutils-arm-none-eabi \
+            libnewlib-arm-none-eabi \
+            build-essential \
+            git \
+            libpng-dev
 
       - name: Trouver la base MAX
         shell: bash
         run: |
           set -e
+
           rm -rf project
           mkdir -p project
 
           ZIP=""
+
           while IFS= read -r -d '' f; do
             if unzip -l "$f" | grep -qE 'abdel_max_source/Makefile$'; then
               ZIP="$f"
@@ -35,25 +42,42 @@ jobs:
           done < <(find . -maxdepth 2 -type f -name '*.zip' -print0)
 
           if [ -z "$ZIP" ]; then
-            echo "ERREUR: Pokemon_Emeraude_Abdel_Edition_MAX_SOURCE.zip introuvable."
+            echo "ERREUR : la base MAX est introuvable."
+            echo "Fichiers ZIP trouvés :"
             find . -maxdepth 2 -type f -name '*.zip' -print
             exit 1
           fi
 
-          echo "Archive: $ZIP"
+          echo "Base trouvée : $ZIP"
+
           unzip -q "$ZIP" -d project
+
+          if [ ! -d "project/abdel_max_source" ]; then
+            echo "ERREUR : le dossier abdel_max_source est introuvable dans le ZIP."
+            find project -maxdepth 2 -type f | head -50
+            exit 1
+          fi
+
           mv project/abdel_max_source project/pokeemerald-fr-master
+
           test -f project/pokeemerald-fr-master/Makefile
 
       - name: Installer agbcc
         shell: bash
         run: |
           set -e
+
           rm -rf agbcc
-          git clone --depth 1 https://github.com/pret/agbcc.git agbcc
+
+          git clone --depth 1 \
+            https://github.com/pret/agbcc.git \
+            agbcc
+
           cd agbcc
+
           ./build.sh
           ./install.sh ../project/pokeemerald-fr-master
+
           test -x ../project/pokeemerald-fr-master/tools/agbcc/bin/agbcc
 
       - name: Compiler la ROM
@@ -61,25 +85,38 @@ jobs:
         shell: bash
         run: |
           set -e
+
           make -j2 all
+
           test -s pokeemerald.gba
+
+          echo "=== ROM PRODUITE ==="
           ls -lh pokeemerald.gba
+
+          echo "=== SHA256 ==="
           sha256sum pokeemerald.gba
 
-      - name: Vérification finale
+      - name: Vérifier la ROM
         working-directory: project/pokeemerald-fr-master
         shell: bash
         run: |
           set -e
+
           python3 - <<'PY'
           from pathlib import Path
-          p = Path('pokeemerald.gba')
+
+          p = Path("pokeemerald.gba")
           b = p.read_bytes()
-          print('Taille:', len(b))
-          print('Titre:', b[0xA0:0xAC].rstrip(b'\0').decode('ascii', 'replace'))
-          print('Code:', b[0xAC:0xB0].decode('ascii', 'replace'))
+
+          print("Taille :", len(b))
+          print("Titre  :", b[0xA0:0xAC].rstrip(b"\0").decode("ascii", "replace"))
+          print("Code   :", b[0xAC:0xB0].decode("ascii", "replace"))
+
           assert len(b) == 16 * 1024 * 1024
-          assert b[0xAC:0xB0] == b'BPEF'
+          assert b[0xAC:0xB0] == b"BPEF"
+
+          print("Vérification OK.")
+
           PY
 
       - name: Publier la ROM finale
@@ -89,21 +126,3 @@ jobs:
           path: project/pokeemerald-fr-master/pokeemerald.gba
           if-no-files-found: error
           retention-days: 7
-          test -s pokeemerald.gba
-
-          echo "=== ROM PRODUITE ==="
-          ls -lh pokeemerald.gba
-
-          echo "=== SHA1 ==="
-          sha1sum pokeemerald.gba
-
-          echo "=== HEADER ==="
-          xxd -l 192 pokeemerald.gba | head -20
-
-      - name: Récupérer la ROM
-        uses: actions/upload-artifact@v4
-        with:
-          name: Pokemon-Emeraude-Abdel-Edition-FR
-          path: pokeemerald-fr/pokeemerald.gba
-          if-no-files-found: error
-          retention-days: 7          

@@ -34,8 +34,8 @@ jobs:
         run: |
           chmod +x tools/gbafix/gbafix
           chmod +x tools/gbagfx/gbagfx
-      - name: Compiler scaninc
-      - working-directory: project/pokeemerald-fr-master
+      - name: Compiler scaninc    
+        working-directory: project/pokeemerald-fr-master
         run: |
           make -C tools/scaninc 
       - name: Compiler le jeu

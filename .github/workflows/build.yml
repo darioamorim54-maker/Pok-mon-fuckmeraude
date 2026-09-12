@@ -19,7 +19,7 @@ jobs:
       - name: Décompresser le projet
         run: |
           mkdir project
-          unzip -q Pokemon_Emeraude_Abdel_Edition_GITHUB_READY.zip-d project
+          unzip -q Pokemon_Emeraude_Abdel_Edition_GITHUB_READY_FIXED.zip -d project
 
       - name: Trouver le projet
         run: |

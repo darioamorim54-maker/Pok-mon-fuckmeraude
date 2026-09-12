@@ -31,7 +31,12 @@ jobs:
           cd agbcc
           ./build.sh
           ./install.sh ../project/pokeemerald-fr-master
-
+      - name: Donner les droits aux outils
+        working-directory: project/pokeemerald-fr-master
+        run: |
+          chmod +x tools/gbafix/gbafix
+          chmod +x tools/gbagfx/gbagfx
+          chmod +x tools/preproc/preproc
       - name: Compiler le jeu
         working-directory: project/pokeemerald-fr-master
         run: |

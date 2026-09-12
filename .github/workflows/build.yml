@@ -39,7 +39,7 @@ jobs:
           echo "=== CONTENU DU PROJET ==="
           ls -la
           echo "=== COMPILATION ==="
-          make -j1 all
+          make -j1 NODEP=1 all
 
       - name: Vérifier la ROM
         working-directory: project/pokeemerald-fr-master

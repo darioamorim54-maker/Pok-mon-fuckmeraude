@@ -35,32 +35,38 @@ jobs:
           ZIP=""
 
           while IFS= read -r -d '' f; do
+            echo "Test du fichier : $f"
+
+            # Vérifier que c'est bien un ZIP valide
+            if ! unzip -t "$f" >/dev/null 2>&1; then
+              echo "ZIP invalide, on passe au suivant."
+              continue
+            fi
+
+            # Vérifier qu'il contient bien notre base MAX
             if unzip -l "$f" | grep -qE 'abdel_max_source/Makefile$'; then
               ZIP="$f"
+              echo "BASE MAX TROUVÉE : $ZIP"
               break
             fi
+
           done < <(find . -maxdepth 2 -type f -name '*.zip' -print0)
 
           if [ -z "$ZIP" ]; then
-            echo "ERREUR : la base MAX est introuvable."
-            echo "Fichiers ZIP trouvés :"
+            echo "ERREUR : aucune base MAX valide trouvée."
+            echo "ZIP présents dans le dépôt :"
             find . -maxdepth 2 -type f -name '*.zip' -print
             exit 1
           fi
 
-          echo "Base trouvée : $ZIP"
-
           unzip -q "$ZIP" -d project
 
-          if [ ! -d "project/abdel_max_source" ]; then
-            echo "ERREUR : le dossier abdel_max_source est introuvable dans le ZIP."
-            find project -maxdepth 2 -type f | head -50
-            exit 1
-          fi
+          test -d project/abdel_max_source
+          test -f project/abdel_max_source/Makefile
 
           mv project/abdel_max_source project/pokeemerald-fr-master
 
-          test -f project/pokeemerald-fr-master/Makefile
+          echo "Base MAX installée avec succès."
 
       - name: Installer agbcc
         shell: bash

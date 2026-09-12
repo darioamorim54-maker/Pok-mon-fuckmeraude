@@ -1,4 +1,4 @@
-name: Build Pokémon Abdel Edition
+name: Build Pokémon Abdel Edition FR
 
 on:
   workflow_dispatch:
@@ -6,6 +6,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     steps:
       - name: Checkout
@@ -13,57 +14,97 @@ jobs:
 
       - name: Installer les outils
         run: |
-          sudo apt-get install -y unzip gcc-arm-none-eabi binutils-arm-none-eabi build-essential libpng-dev
-      - name: Décompresser le projet
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            gcc-arm-none-eabi \
+            binutils-arm-none-eabi \
+            libnewlib-arm-none-eabi \
+            build-essential \
+            git \
+            libpng-dev
+
+      - name: Récupérer la base française
         run: |
-          mkdir project
-          unzip -q Pokemon_Emeraude_Abdel_Edition_GITHUB_READY_FIXED.zip -d project
-      - name: Corriger les noms de capacités
-        working-directory: project/pokeemerald-fr-master
+          set -e
+
+          git clone --depth 1 --branch french \
+            https://github.com/simsor/pokeemerald-fr.git \
+            pokeemerald-fr
+
+          test -f pokeemerald-fr/Makefile
+
+          echo "=== BASE FRANÇAISE ==="
+          pwd
+          ls -lh pokeemerald-fr/Makefile
+
+      - name: Modifier le vélo en GT86
+        working-directory: pokeemerald-fr
         run: |
-            sed -i 's/Garde Mystique/Garde Mystik/g' src/data/text/abilities.h
-            sed -i 's/Ecaille Spéciale/Ecaille Spec/g' src/data/text/abilities.h
-      - name: Trouver le projet
-        run: |
-          find project -name Makefile -print
+          set -e
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          files = [
+              Path("src/data/items.h"),
+              Path("src/data/text/item_descriptions.h"),
+          ]
+
+          for path in files:
+              text = path.read_text(encoding="utf-8")
+
+              text = text.replace("VELO COURSE", "GT86")
+              text = text.replace("VELO CROSS", "GT86 RALLY")
+              text = text.replace("VÉLO COURSE", "GT86")
+              text = text.replace("VÉLO CROSS", "GT86 RALLY")
+
+              path.write_text(text, encoding="utf-8")
+
+          print("GT86 appliquée.")
+          PY
 
       - name: Installer agbcc
         run: |
-          git clone --depth 1 https://github.com/pret/agbcc.git
+          set -e
+
+          git clone --depth 1 \
+            https://github.com/pret/agbcc.git \
+            agbcc
+
           cd agbcc
           ./build.sh
-          ./install.sh ../project/pokeemerald-fr-master
-      - name: Donner les droits aux outils
-        working-directory: project/pokeemerald-fr-master
+          ./install.sh ../pokeemerald-fr
+
+          test -x ../pokeemerald-fr/tools/agbcc/bin/agbcc
+
+      - name: Compiler
+        working-directory: pokeemerald-fr
         run: |
-          chmod +x tools/gbafix/gbafix
-          chmod +x tools/gbagfx/gbagfx
-      - name: Compiler scaninc    
-        working-directory: project/pokeemerald-fr-master
-        run: |
-          make -C tools/scaninc 
-      - name: Compiler le jeu
-        working-directory: project/pokeemerald-fr-master
-        run: |
-          pwd
-          echo "=== CONTENU DU PROJET ==="
-          ls -la
+          set -e
+
           echo "=== COMPILATION ==="
-          make -j1 all
+          make -j2
 
       - name: Vérifier la ROM
-        working-directory: project/pokeemerald-fr-master
+        working-directory: pokeemerald-fr
         run: |
-          echo "=== ROMS TROUVEES ==="
-          ls -lh *.gba
+          set -e
+
           test -s pokeemerald.gba
+
+          echo "=== ROM PRODUITE ==="
+          ls -lh pokeemerald.gba
+
           echo "=== SHA1 ==="
           sha1sum pokeemerald.gba
+
+          echo "=== HEADER ==="
+          xxd -l 192 pokeemerald.gba | head -20
 
       - name: Récupérer la ROM
         uses: actions/upload-artifact@v4
         with:
-          name: Pokemon-Emeraude-Abdel-Edition
-          path: project/pokeemerald-fr-master/pokeemerald.gba
+          name: Pokemon-Emeraude-Abdel-Edition-FR
+          path: pokeemerald-fr/pokeemerald.gba
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 7          

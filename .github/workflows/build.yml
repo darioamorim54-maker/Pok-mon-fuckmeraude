@@ -83,7 +83,7 @@ jobs:
 
           ./build.sh
           ./install.sh ../project/pokeemerald-fr-master
-
+          chmod +x ../project/pokeemerald-fr-master/tools/gbagfx/gbagfx
           test -x ../project/pokeemerald-fr-master/tools/agbcc/bin/agbcc
 
       - name: Compiler la ROM

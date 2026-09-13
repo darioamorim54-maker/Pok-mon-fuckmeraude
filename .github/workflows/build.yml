@@ -86,7 +86,11 @@ jobs:
           chmod +x ../project/pokeemerald-fr-master/tools/gbagfx/gbagfx
           chmod +x ../project/pokeemerald-fr-master/tools/gbafix/gbafix
           test -x ../project/pokeemerald-fr-master/tools/agbcc/bin/agbcc
-
+      - name: Donner les permissions aux outils
+        working-directory: project/pokeemerald-fr-master
+        shell: bash
+        run: |
+          find tools -type f -exec chmod +x {} +
       - name: Compiler la ROM
         working-directory: project/pokeemerald-fr-master
         shell: bash
